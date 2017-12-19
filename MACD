@@ -1,0 +1,62 @@
+#psudo code
+import talib
+import numpy as np
+
+#initialize context
+start = '2017-01-01'                       # start date of back-test
+end = '2017-12-01'                         # end date of back-test
+universe = set_universe('HS300', start)        # use start to avoid survivl bias
+benchmark = 'HS300'                        
+freq = 'd'                                 # 'd' means day
+refresh_rate = 1                           
+
+#initialize account
+accounts = {
+    'fantasy_account': AccountConfig(account_type='security', capital_base=10000000)
+}
+
+#parameters
+max_history_window = 60 #how many days we use in calculating MACD
+fastperiod = 12 
+slowperiod = 26 
+signalperiod =9 
+
+
+def initialize(context):                  
+    return
+
+
+def handle_data(context):                  
+    timing(context)
+
+def timing_Basic_MACD(context):
+   
+    #general part:account, universe,price, position, cash
+    account=context.get_account('fantasy_account') 
+    current_universe=context.get_universe(exclude_halt=True) 
+    log.info(current_universe)
+    history=context.history(current_universe,'closePrice',max_history_window,rtype='array')
+    security_position=account.get_positions()
+    cash = account.cash
+    
+    #timing execution part:
+    buylist=[] 
+    for sec in current_universe: 
+        close=history[sec]['closePrice'] 
+        DIF, DEA, MACD=talib.MACD(close,fastperiod=fastperiod,
+                                  slowperiod=slowperiod,signalperiod=signalperiod)
+        if MACD[-2]<0 and MACD[-1]>0 and sec not in security_position: 
+            buylist.append(sec) 
+        elif MACD[-2]>0 and MACD[-1]<0 and sec in security_position: 
+            order_to(sec,0) 
+            cash+=security_position[sec].amount*context.current_price(sec)
+            #context.current_price(sec)
+            #security_position[sec].amount
+            
+    
+    d=min(len(buylist), int(cash)//100000) 
+    for sec in buylist[:d]:
+        order(sec, 100000/context.current_price(sec)) 
+        
+def timing(context):
+    timing_Basic_MACD(context)
