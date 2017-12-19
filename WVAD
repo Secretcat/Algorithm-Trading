@@ -1,0 +1,59 @@
+def timing_Basic_WVAD(context):
+    #when WVAD>0, long; when WVAD<0 short
+    
+    
+    account=context.get_account('fantasy_account')
+    current_universe=context.get_universe(exclude_halt=True) 
+    security_position=account.get_positions() 
+    cash=account.cash
+   
+    buylist=[]
+    for sec in current_universe:   
+        if context.signal_result['WVAD'][sec]>buy_threshold and sec not in security_position:
+            buylist.append(sec)
+        elif context.signal_result['WVAD'][sec]<sell_threshold and sec in security_position:
+            cash+=security_position[sec].amount*context.current_price(sec) 
+            
+            
+    
+    #execution part
+    d=min(len(buylist), int(cash) // 100000) 
+    for sec in buylist[:d]:
+        order(sec, 100000/context.current_price(sec)) 
+        
+        
+        
+def timing(context):
+    timing_Basic_WVAD(context) 
+    
+    
+
+import numpy as np
+import pandas as pd
+
+start = '2016-05-01'                       
+end = '2016-11-01'                        
+universe = set_universe('HS300', start)      
+benchmark = 'HS300'                       
+freq = 'd'                                 
+refresh_rate = 1                           
+
+
+accounts = {
+    'fantasy_account': AccountConfig(account_type='security', capital_base=10000000)
+}
+
+buy_threshold = 0 
+sell_threshold =0 
+
+
+def initialize(context):                   
+    wvad = Signal('WVAD')                 
+    context.signal_generator = SignalGenerator(wvad) 
+                                                   
+    
+
+def handle_data(context):                  
+    timing(context)
+
+
